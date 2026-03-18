@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>VN Market Dashboard</title>
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#131722;color:#d1d4dc;font-family:'Trebuchet MS','Segoe UI',Tahoma,sans-serif;font-size:12px}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2a2e39;border-radius:2px}
+#tb{height:40px;background:#1e222d;border-bottom:1px solid #2a2e39;display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0}
+.logo{font-weight:700;font-size:13px;letter-spacing:.1em;color:#2962ff;white-space:nowrap}.logo b{color:#26a69a}
+#idx-row{display:flex;gap:4px}
+.ip{display:inline-flex;align-items:center;gap:5px;background:#2a2e39;border:1px solid #363a45;border-radius:4px;padding:3px 9px;font-size:11px;white-space:nowrap;cursor:pointer;transition:all .15s}
+.ip:hover,.ip.sel{border-color:#2962ff;background:#1c2538}
+.ip .n{color:#787b86;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.ip .v{font-weight:700;color:#d1d4dc;font-size:13px}.ip .c{font-size:11px}
+.up{color:#26a69a}.dn{color:#ef5350}.neu{color:#787b86}
+.tb-sp{flex:1}
+#ts{font-size:10px;color:#434651;white-space:nowrap}
+.tbtn{background:none;border:1px solid #363a45;color:#787b86;font:inherit;font-size:10.5px;padding:4px 10px;border-radius:4px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tbtn:hover{border-color:#2962ff;color:#d1d4dc}.tbtn.busy{border-color:#f59f00;color:#f59f00}
+#layout{display:flex;height:calc(100vh - 40px)}
+#L{width:50%;min-width:360px;display:flex;flex-direction:column;border-right:1px solid #2a2e39;overflow:hidden}
+#fbar{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:4px 10px;border-bottom:1px solid #2a2e39;background:#1e222d;flex-wrap:wrap}
+#fbar input,#fbar select{background:#131722;border:1px solid #2a2e39;color:#d1d4dc;font:inherit;font-size:10.5px;padding:3px 7px;border-radius:4px;outline:none}
+#fbar input{width:98px}
+#fbar input:focus,#fbar select:focus{border-color:#2962ff}
+#fbar label{font-size:10.5px;color:#787b86;display:flex;align-items:center;gap:3px}
+.fsep{flex:1}#rc{font-size:10px;color:#434651}
+#bbar{flex-shrink:0;display:flex;gap:3px;padding:3px 10px;border-bottom:1px solid #2a2e39;background:#1a1d27;overflow-x:auto}
+.bc{background:#2a2e39;border-radius:3px;padding:2px 7px;min-width:50px;text-align:center;flex-shrink:0}
+.bc .bl{font-size:8px;color:#434651;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.bc .bv{font-size:13px;font-weight:700;line-height:1.4}
+#tw{flex:1;overflow-y:auto;overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{position:sticky;top:0;z-index:5;background:#1e222d;color:#434651;font-weight:600;padding:5px 4px;text-align:right;white-space:nowrap;border-bottom:1px solid #2a2e39;cursor:pointer;font-size:10px;letter-spacing:.04em;user-select:none}
+thead th:first-child{text-align:left;padding-left:10px}thead th:nth-child(2){text-align:left}
+thead th:hover{color:#d1d4dc}
+thead th.sd::after{content:" v";color:#2962ff}thead th.sa::after{content:" ^";color:#2962ff}
+tbody tr{border-bottom:1px solid #1a1d27;cursor:pointer;transition:background .08s}
+tbody tr:hover{background:#1e222d}tbody tr.sel{background:#1c2a45}
+tbody td{padding:3px 4px;text-align:right;white-space:nowrap;font-size:11.5px}
+tbody td:first-child{text-align:left;padding-left:10px}tbody td:nth-child(2){text-align:left}
+.sym{color:#4a7cf0;font-weight:700;font-size:12px}
+.vdot{display:inline-block;width:4px;height:4px;background:#2962ff;border-radius:50%;margin-right:3px;vertical-align:middle}
+.stg{font-size:8.5px;background:#2a2e39;border:1px solid #363a45;color:#434651;padding:1px 4px;border-radius:2px}
+.gA{color:#26a69a;font-weight:700}.gB{color:#f59f00;font-weight:700}.gC{color:#ef5350;font-weight:700}
+.vhi{color:#f59f00}
+.rs-hi{color:#b5e853;font-weight:700}.rs-lo{color:#ef5350}.rs-ok{color:#d1d4dc}
+canvas.sp{cursor:pointer;display:block}
+tbody tr.bo{background:#1a1500!important;border-left:2px solid #f59f00}
+tbody tr.bo:hover{background:#241d00!important}
+tbody tr.bo.sel{background:#1f2a00!important;border-left:2px solid #b5e853}
+tbody tr.rs-leader{border-left:2px solid #26a69a}
+#foot{flex-shrink:0;padding:3px 10px;border-top:1px solid #2a2e39;background:#1a1d27;font-size:10px;color:#434651;display:flex;gap:10px}
+#R{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#ch{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 12px;border-bottom:1px solid #2a2e39;background:#1e222d;flex-wrap:wrap}
+#csym{font-size:15px;font-weight:700;color:#4a7cf0;letter-spacing:.08em}
+#cprc{font-size:15px;font-weight:700;color:#d1d4dc;margin-left:6px}
+#cchg{font-size:12px}.chsp{flex:1}
+.cbb{background:#2a2e39;border:1px solid #363a45;color:#787b86;font:inherit;font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;transition:all .15s}
+.cbb:hover,.cbb.on{border-color:#2962ff;color:#d1d4dc;background:#1c2538}
+#tv-wrap{flex:1;min-height:0;position:relative;background:#131722;display:flex;flex-direction:column}
+#tv-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#434651;font-size:12px;text-align:center;z-index:1}
+#tv-ph b{color:#2962ff}
+#tv-frame{flex:1;width:100%;border:none;display:none}
+#rbot{flex-shrink:0;height:186px;border-top:1px solid #2a2e39;display:flex;flex-direction:column}
+#rtnav{display:flex;border-bottom:1px solid #2a2e39;background:#1e222d;flex-shrink:0;overflow-x:auto}
+.rt{background:none;border:none;border-bottom:2px solid transparent;color:#434651;font:inherit;font-size:10.5px;padding:5px 13px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:all .15s}
+.rt:hover{color:#d1d4dc}.rt.on{color:#4a7cf0;border-bottom-color:#2962ff}
+#rcont{flex:1;overflow:auto;padding:6px 10px}
+#shm{display:flex;flex-wrap:wrap;gap:3px}
+.sc{border-radius:3px;padding:5px 8px;min-width:80px;flex:1;cursor:pointer;transition:opacity .12s,filter .12s}
+.sc:hover{opacity:.85;filter:brightness(1.1)}
+.sc .sn{font-size:9px;font-weight:700;letter-spacing:.04em;opacity:.85}
+.sc .sp{font-size:13px;font-weight:700;margin:2px 0 1px}.sc .ss{font-size:9px;opacity:.6}
+.hp3{background:#1b4332;color:#6ee7b7}.hp2{background:#166534;color:#86efac}.hp1{background:#1a3d2b;color:#6ee7b7}
+.hn0{background:#2a2e39;color:#787b86}
+.hn1{background:#3d1515;color:#fca5a5}.hn2{background:#6b1a1a;color:#fca5a5}.hn3{background:#7f1d1d;color:#fca5a5}
+#mgrid,#bdgrid,#egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px}
+.mc{background:#1e222d;border:1px solid #2a2e39;border-radius:4px;padding:6px 8px}
+.mc .ml{font-size:9px;color:#434651;margin-bottom:3px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.mc .mv{font-size:13px;font-weight:700;color:#d1d4dc}.mc .ms{font-size:11px;margin-top:2px}
+.mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:900;align-items:center;justify-content:center}
+.mov.open{display:flex}
+.mbox{background:#1e222d;border:1px solid #2a2e39;border-radius:8px;width:min(94vw,1000px);height:min(86vh,700px);display:flex;flex-direction:column;overflow:hidden}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #2a2e39;flex-shrink:0}
+.mhdr h3{font-size:12px;font-weight:700;color:#d1d4dc;letter-spacing:.08em}
+.mhdr button{background:none;border:none;color:#787b86;font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.mhdr button:hover{color:#ef5350}
+.mbox iframe{flex:1;border:none;width:100%}
+#guide{position:fixed;top:0;right:0;bottom:0;width:min(300px,90vw);background:#1e222d;border-left:1px solid #2a2e39;z-index:800;transform:translateX(100%);transition:transform .2s;overflow-y:auto;padding:16px}
+#guide.open{transform:translateX(0)}
+#guide h4{font-size:10px;color:#2962ff;letter-spacing:.12em;font-weight:700;margin-bottom:12px;border-bottom:1px solid #2a2e39;padding-bottom:8px;text-transform:uppercase}
+.gi{margin-bottom:10px}.gi dt{font-size:11px;font-weight:700;color:#d1d4dc;margin-bottom:2px}
+.gi dd{font-size:10.5px;color:#787b86;margin:0;line-height:1.6}
+#toast{position:fixed;bottom:14px;right:14px;background:#2a2e39;border:1px solid #363a45;border-radius:5px;padding:8px 14px;font-size:11px;color:#787b86;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;max-width:280px}
+#toast.show{opacity:1}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}.pulse{animation:pulse 1.2s ease infinite}
+
+</style>
+</head>
+<body>
+<div id="tb">
+  <span class="logo">VN<b>MARKET</b></span>
+  <div id="idx-row">
+    <div class="ip" id="ip-VI"><span class="n">VN-Index</span><span class="v" id="iv-VI">--</span><span class="c neu" id="ic-VI">--</span></div>
+    <div class="ip" id="ip-V3"><span class="n">VN30</span><span class="v" id="iv-V3">--</span><span class="c neu" id="ic-V3">--</span></div>
+    <div class="ip" id="ip-HX"><span class="n">HNX</span><span class="v" id="iv-HX">--</span><span class="c neu" id="ic-HX">--</span></div>
+    <div class="ip" id="ip-UC"><span class="n">UPCOM</span><span class="v" id="iv-UC">--</span><span class="c neu" id="ic-UC">--</span></div>
+  </div>
+  <span class="tb-sp"></span>
+  <span id="ts">--</span>
+  <button class="tbtn" id="fbtn" onclick="fetchAll()">Tai lai data</button>
+  <button class="tbtn" onclick="openM('cal')">Lich KT</button>
+  <button class="tbtn" onclick="openM('brd')">Breadth TV</button>
+  <button class="tbtn" onclick="toggleGuide()">Guide</button>
+</div>
+<div id="layout">
+  <div id="L">
+    <div id="fbar">
+      <input id="qry" oninput="renderTable()" placeholder="Tim ma / nganh...">
+      <select id="secf" onchange="renderTable()"><option value="">Nganh</option></select>
+      <select id="grf" onchange="renderTable()">
+        <option value="">Grade</option>
+        <option value="A">A -- Uptrend</option>
+        <option value="B">B -- Mixed</option>
+        <option value="C">C -- Down</option>
+      </select>
+      <label><input type="checkbox" id="vf" onchange="renderTable()"> VN30</label>
+      <span class="fsep"></span><span id="rc"></span>
+    </div>
+    <div id="bbar"></div>
+    <div id="tw"><table><thead><tr id="thr"></tr></thead><tbody id="tbod"></tbody></table></div>
+    <div id="foot">
+      <span>Arrow keys navigate</span><span>Blue dot=VN30</span>
+      <span>Bo=breakout RS=MarketSmith 1-99</span><span>vnstock/VCI</span>
+    </div>
+  </div>
+  <div id="R">
+    <div id="ch">
+      <span id="csym">--</span><span id="cprc">--</span><span id="cchg" class="neu">--</span>
+      <span class="chsp"></span>
+      <div style="display:flex;gap:3px">
+        <button class="cbb on" id="iv-D" onclick="setIv('D')">D</button>
+        <button class="cbb" id="iv-W" onclick="setIv('W')">W</button>
+        <button class="cbb" id="iv-M" onclick="setIv('M')">M</button>
+        <button class="cbb" id="iv-12M" onclick="setIv('12M')">1Y</button>
+        <button class="cbb" id="iv-60M" onclick="setIv('60M')">5Y</button>
+      </div>
+      <div style="display:flex;gap:3px;margin-left:6px">
+        <button class="cbb on" id="cs-1" onclick="setCs('1')">Bar</button>
+        <button class="cbb" id="cs-9" onclick="setCs('9')">Nen</button>
+        <button class="cbb" id="cs-3" onclick="setCs('3')">Line</button>
+        <button class="cbb" id="cs-8" onclick="setCs('8')">Heiken</button>
+      </div>
+    </div>
+    <div id="tv-wrap">
+      <div id="tv-ph">
+        <div class="pulse">Dang tai data...</div>
+        <div style="font-size:10px;margin-top:4px;color:#363a45">Sau do click co phieu de mo TradingView chart</div>
+      </div>
+      <iframe id="tv-frame" scrolling="no" allowtransparency="true" allowfullscreen="true" frameborder="0"></iframe>
+    </div>
+    <div id="rbot">
+      <div id="rtnav">
+        <button class="rt on" onclick="swTab('hm')">Heatmap</button>
+        <button class="rt" onclick="swTab('bd')">Breadth</button>
+        <button class="rt" onclick="swTab('mc')">Macro</button>
+        <button class="rt" onclick="swTab('et')">ETF</button>
+      </div>
+      <div id="rcont">
+        <div id="t-hm"><div id="shm"></div></div>
+        <div id="t-bd" style="display:none"><div id="bdgrid"></div></div>
+        <div id="t-mc" style="display:none"><div id="mgrid"></div></div>
+        <div id="t-et" style="display:none"><div id="egrid"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="mov" id="modal-cal" onclick="closeM('cal')">
+  <div class="mbox" onclick="event.stopPropagation()">
+    <div class="mhdr"><h3>ECONOMIC CALENDAR</h3><button onclick="closeM('cal')">x</button></div>
+    <iframe id="cal-frame" allowtransparency="true" frameborder="0"></iframe>
+  </div>
+</div>
+<div class="mov" id="modal-brd" onclick="closeM('brd')">
+  <div class="mbox" onclick="event.stopPropagation()">
+    <div class="mhdr"><h3>MARKET OVERVIEW</h3><button onclick="closeM('brd')">x</button></div>
+    <iframe id="brd-frame" allowtransparency="true" frameborder="0"></iframe>
+  </div>
+</div>
+<div id="guide">
+  <h4>Column Guide</h4>
+  <dl>
+    <div class="gi"><dt>Grade</dt><dd>A=EMA10&gt;EMA20&gt;SMA50. B=Mixed. C=Down.</dd></div>
+    <div class="gi"><dt>ATRx</dt><dd>(Price-SMA50)/ATR14. &gt;2=overextended.</dd></div>
+    <div class="gi"><dt>V/TB</dt><dd>Vol/TB20. &gt;2=spike.</dd></div>
+    <div class="gi"><dt>VARS</dt><dd>Vol-Adj RS vs VNI 0-100. 60+=manh.</dd></div>
+    <div class="gi"><dt>RS</dt><dd>MarketSmith RS 1-99.<br>40%*12T+20%*3T+20%*1T+20%*1W<br><span style="color:#b5e853">80+</span>=top. <span style="color:#ef5350">&lt;40</span>=yeu.</dd></div>
+    <div class="gi"><dt>Breakout row</dt><dd>Vang: Vol&ge;1.5x+gia trong 5% dinh 52T+xanh.<br>Vien xanh: RS&ge;80.</dd></div>
+  </dl>
+  <button onclick="toggleGuide()" style="margin-top:8px;background:#ef5350;border:none;color:#fff;padding:7px;border-radius:4px;font:inherit;font-size:11px;cursor:pointer;width:100%">Close</button>
+</div>
+<div id="toast"></div>
+<script>
+
+var S = {stocks:[], indices:{}, sectors:[], breadth:{}, macro:{}, etf:[], selSym:null, iv:'D', cs:'1'};
+var sortCol = 'rs', sortAsc = false, focRow = -1;
+
+var SM = {
+  VCB:'Ngan hang',BID:'Ngan hang',CTG:'Ngan hang',MBB:'Ngan hang',TCB:'Ngan hang',
+  ACB:'Ngan hang',VPB:'Ngan hang',HDB:'Ngan hang',STB:'Ngan hang',LPB:'Ngan hang',
+  SSI:'Chung khoan',VCI:'Chung khoan',HCM:'Chung khoan',MBS:'Chung khoan',VND:'Chung khoan',
+  VHM:'BDS',VIC:'BDS',VRE:'BDS',NVL:'BDS',KDH:'BDS',PDR:'BDS',DXG:'BDS',KBC:'BDS',
+  HPG:'Thep',HSG:'Thep',NKG:'Thep',
+  MSN:'Tieu dung',MWG:'Tieu dung',VNM:'Tieu dung',SAB:'Tieu dung',PNJ:'Tieu dung',DBC:'Tieu dung',
+  FPT:'Cong nghe',CMG:'Cong nghe',
+  GAS:'Dau khi',PLX:'Dau khi',PVS:'Dau khi',PVD:'Dau khi',
+  REE:'Dien',PC1:'Dien',POW:'Dien',
+  DGC:'Hoa chat',DCM:'Hoa chat',DPM:'Hoa chat',
+  GMD:'Logistics',HAH:'Logistics',VSC:'Logistics',
+  VJC:'Hang khong',HVN:'Hang khong',
+  VHC:'Thuy san',ANV:'Thuy san',IDI:'Thuy san',
+  TCM:'Det may',TNG:'Det may',MSH:'Det may'
+};
+var VN30=['VCB','BID','CTG','MBB','TCB','ACB','VPB','HDB','STB','LPB',
+          'VHM','VIC','VRE','NVL','KDH','HPG','MSN','MWG','VNM','SAB',
+          'PNJ','FPT','CMG','GAS','PLX','VJC','HVN','SSI','VCI','REE'];
+
+/* Map sàn đúng cho từng mã */
+var HNX_STOCKS=['SHB','NVB','ACB','TNG','NKG','MBS','PVS','DBC','VCS',
+  'DPM','DCM','DGC','HAH','VSC','IDI','MSH','PC1','VND','HUT'];
+var UPCOM_STOCKS=['OIL','BSR','QNS','ACV','MCH','HVN','FOX','VTP','VGI'];
+
+function tvPfx(sym){
+  if(['HNXINDEX','HNX30'].indexOf(sym)>=0)return'HNX:';
+  if(['UPCOMINDEX'].indexOf(sym)>=0)return'UPCOM:';
+  if(HNX_STOCKS.indexOf(sym)>=0)return'HNX:';
+  if(UPCOM_STOCKS.indexOf(sym)>=0)return'UPCOM:';
+  return'HOSE:';
+}
+function tvUrl(sym,iv,cs){
+  var ts=encodeURIComponent(tvPfx(sym)+sym);
+  return'https://www.tradingview.com/widgetembed/?frameElementId=tv_chart_main&symbol='+ts+
+    '&interval='+(iv||'D')+'&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1'+
+    '&toolbarbg=1e222d&theme=dark&style='+(cs||'1')+'&timezone=Asia%2FHo_Chi_Minh'+
+    '&withdateranges=1&showpopupbutton=1&locale=vi_VN';
+}
+
+function f(v,d){if(v==null)return'--';d=d==null?2:d;return Number(v).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fp(v){if(v==null)return'--';if(v>=1000)return(v/1000).toFixed(1)+'k';return Number(v).toFixed(1);}
+function fpct(v){if(v==null)return'--';return(v>0?'+':'')+Number(v).toFixed(2)+'%';}
+function cc(v){return v>0?'up':v<0?'dn':'neu';}
+function hc(v){
+  if(v>=2.5)return'hp3';if(v>=1)return'hp2';if(v>=0.3)return'hp1';
+  if(v>-0.3)return'hn0';if(v>-1)return'hn1';if(v>-2.5)return'hn2';return'hn3';
+}
+function toast(m,d){var el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},d||3500);}
+
+/* ── Load snapshot.json (thay vi goi API) ── */
+async function fetchAll(){
+  var btn=document.getElementById('fbtn');
+  btn.textContent='Dang tai...';btn.className='tbtn busy';btn.disabled=true;
+  toast('Dang tai data/snapshot.json...',8000);
+  try{
+    var resp=await fetch('data/snapshot.json?t='+Date.now());
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    var json=await resp.json();
+    if(json&&(json.stocks||[]).length){
+      ingest(json);
+      toast('Cap nhat: '+json.stocks.length+' co phieu | '+json.updated,4000);
+    }else{
+      toast('Khong co data. Chay: python3 scripts/build_data.py',5000);
+    }
+  }catch(e){
+    toast('Loi tai JSON: '+e.message+' | Chay build_data.py truoc',5000);
+  }
+  btn.textContent='Tai lai data';btn.className='tbtn';btn.disabled=false;
+}
+
+/* ── TV Chart ── */
+function loadTV(sym){
+  S.selSym=sym;hilite(sym);
+  document.getElementById('csym').textContent=sym;
+  var st=S.stocks.find(function(x){return x.symbol===sym;});
+  var idx=(S.indices||{})[sym];
+  if(st){document.getElementById('cprc').textContent=fp(st.last);document.getElementById('cchg').textContent=fpct(st.chg_pct);document.getElementById('cchg').className=cc(st.chg_pct);}
+  else if(idx){document.getElementById('cprc').textContent=f(idx.last,2);document.getElementById('cchg').textContent=fpct(idx.chg_pct);document.getElementById('cchg').className=cc(idx.chg_pct);}
+  var frame=document.getElementById('tv-frame');
+  document.getElementById('tv-ph').style.display='none';
+  frame.style.display='block';
+  frame.src=tvUrl(sym,S.iv,S.cs);
+}
+function setIv(iv){S.iv=iv;['D','W','M','12M','60M'].forEach(function(k){var b=document.getElementById('iv-'+k);if(b)b.classList.toggle('on',k===iv);});if(S.selSym)loadTV(S.selSym);}
+function setCs(cs){S.cs=cs;['1','9','3','8'].forEach(function(k){var b=document.getElementById('cs-'+k);if(b)b.classList.toggle('on',k===cs);});if(S.selSym)loadTV(S.selSym);}
+
+document.getElementById('ip-VI').onclick=function(){selIdx('VI','VNINDEX');};
+document.getElementById('ip-V3').onclick=function(){selIdx('V3','VN30');};
+document.getElementById('ip-HX').onclick=function(){selIdx('HX','HNXINDEX');};
+document.getElementById('ip-UC').onclick=function(){selIdx('UC','UPCOMINDEX');};
+function selIdx(code,sym){
+  document.querySelectorAll('.ip').forEach(function(el){el.classList.remove('sel');});
+  var el=document.getElementById('ip-'+code);if(el)el.classList.add('sel');
+  loadTV(sym);
+}
+
+/* ── Ingest ── */
+function ingest(json){
+  var stocks=json.stocks||[];
+  stocks.forEach(function(s){
+    s.sector=s.sector||SM[s.symbol]||'Khac';
+    s.in_vn30=!!(s.in_vn30||(VN30.indexOf(s.symbol)>=0));
+  });
+  S.stocks=stocks;S.indices=json.indices||{};S.breadth=json.breadth||{};S.macro=json.macro||{};S.etf=json.etf||[];
+  buildSectors();renderChips();renderBbar();renderTable();populateSec();
+  renderHeatmap();renderBreadth();renderMacro();renderEtf();
+  document.getElementById('ts').textContent=json.updated||'';
+}
+function buildSectors(){
+  var m={};
+  S.stocks.forEach(function(s){
+    var k=s.sector||'Khac';
+    if(!m[k])m[k]={name:k,t:[],cs:0,n:0,a:0,d:0};
+    m[k].t.push(s.symbol);m[k].cs+=(s.chg_pct||0);m[k].n++;
+    if((s.chg_pct||0)>0)m[k].a++;if((s.chg_pct||0)<0)m[k].d++;
+  });
+  S.sectors=Object.values(m).map(function(d){d.avg=d.n?d.cs/d.n:0;return d;}).sort(function(a,b){return b.avg-a.avg;});
+}
+function renderChips(){
+  var map={VI:'VNINDEX',V3:'VN30',HX:'HNXINDEX',UC:'UPCOMINDEX'};
+  Object.keys(map).forEach(function(k){
+    var d=(S.indices||{})[map[k]]||{};
+    var ve=document.getElementById('iv-'+k),ce=document.getElementById('ic-'+k);
+    if(ve)ve.textContent=f(d.last,2);
+    if(ce){ce.textContent=fpct(d.chg_pct);ce.className='c '+cc(d.chg_pct);}
+  });
+}
+function renderBbar(){
+  var b=S.breadth;
+  var items=[
+    {l:'ADV',v:b.advance,c:'up'},{l:'DEC',v:b.decline,c:'dn'},
+    {l:'A/D',v:(b.advance&&b.decline)?Number(b.advance/b.decline).toFixed(1):'--',c:(b.advance||0)>(b.decline||1)?'up':'dn'},
+    {l:'%MA50',v:(b.pct_above_ma50||0)+'%',c:(b.pct_above_ma50||0)>=60?'up':'dn'},
+    {l:'%MA200',v:(b.pct_above_ma200||0)+'%',c:(b.pct_above_ma200||0)>=55?'up':'dn'},
+    {l:'GrA',v:b.grade_a,c:'up'},{l:'GrB',v:b.grade_b,c:'neu'},{l:'GrC',v:b.grade_c,c:'dn'},
+  ];
+  var h='';items.forEach(function(i){h+='<div class="bc"><div class="bl">'+i.l+'</div><div class="bv '+i.c+'">'+(i.v!=null?i.v:'--')+'</div></div>';});
+  document.getElementById('bbar').innerHTML=h;
+}
+var COLS=[
+  {k:'symbol',l:'Ma'},{k:'sector',l:'Nganh'},{k:'grade',l:'Gr'},
+  {k:'last',l:'Gia'},{k:'chg_pct',l:'%D'},{k:'chg_1w',l:'%1T'},
+  {k:'chg_1m',l:'%1M'},{k:'chg_3m',l:'%3M'},
+  {k:'atr_x',l:'ATRx'},{k:'vol_ratio',l:'V/TB'},{k:'vars',l:'VARS'},{k:'from_52h',l:'52H%'},
+  {k:'rs',l:'RS'},
+];
+function buildHeader(){
+  var tr=document.getElementById('thr');tr.innerHTML='';
+  COLS.forEach(function(col){
+    var th=document.createElement('th');th.textContent=col.l;
+    if(col.k!=='sector'){
+      th.dataset.col=col.k;
+      th.onclick=function(){if(sortCol===col.k)sortAsc=!sortAsc;else{sortCol=col.k;sortAsc=false;}renderTable();};
+    }
+    tr.appendChild(th);
+  });
+  var sp=document.createElement('th');sp.textContent='Spark';tr.appendChild(sp);
+}
+function getRows(){
+  var q=(document.getElementById('qry').value||'').toLowerCase();
+  var sec=document.getElementById('secf').value;
+  var gr=document.getElementById('grf').value;
+  var vn30=document.getElementById('vf').checked;
+  return S.stocks.filter(function(r){
+    if(q&&r.symbol.toLowerCase().indexOf(q)<0&&(r.sector||'').toLowerCase().indexOf(q)<0)return false;
+    if(sec&&r.sector!==sec)return false;
+    if(gr&&r.grade!==gr)return false;
+    if(vn30&&!r.in_vn30)return false;
+    return true;
+  });
+}
+function renderTable(){
+  var rows=getRows();
+  rows.sort(function(a,b){
+    var av=a[sortCol],bv=b[sortCol];
+    if(av==null)av=sortAsc?Infinity:-Infinity;
+    if(bv==null)bv=sortAsc?Infinity:-Infinity;
+    if(typeof av==='string')return sortAsc?av.localeCompare(bv):bv.localeCompare(av);
+    return sortAsc?av-bv:bv-av;
+  });
+  document.getElementById('rc').textContent=rows.length+' ma';
+  document.querySelectorAll('#thr th').forEach(function(th){
+    th.classList.remove('sd','sa');
+    if(th.dataset&&th.dataset.col===sortCol)th.classList.add(sortAsc?'sa':'sd');
+  });
+  var tb=document.getElementById('tbod');tb.innerHTML='';
+  rows.forEach(function(r){
+    var tr=document.createElement('tr');
+    if(r.symbol===S.selSym)tr.classList.add('sel');
+    tr.onclick=function(){loadTV(r.symbol);};
+    var td0=document.createElement('td');
+    if(r.in_vn30){var dot=document.createElement('span');dot.className='vdot';dot.title='VN30';td0.appendChild(dot);}
+    var ss=document.createElement('span');ss.className='sym';ss.textContent=r.symbol;td0.appendChild(ss);
+    var td1=document.createElement('td');
+    var tg=document.createElement('span');tg.className='stg';tg.textContent=(r.sector||'').slice(0,6);td1.appendChild(tg);
+    var td2=document.createElement('td');
+    var gs=document.createElement('span');gs.className='g'+(r.grade||'C');gs.textContent=r.grade||'--';td2.appendChild(gs);
+    function ntd(v,cls){var td=document.createElement('td');td.textContent=v;if(cls)td.className=cls;return td;}
+    var axc=r.atr_x>2?'dn':r.atr_x<-1?'neu':'up';
+    tr.appendChild(td0);tr.appendChild(td1);tr.appendChild(td2);
+    tr.appendChild(ntd(fp(r.last),''));
+    tr.appendChild(ntd(fpct(r.chg_pct),cc(r.chg_pct)));
+    tr.appendChild(ntd(fpct(r.chg_1w),cc(r.chg_1w)));
+    tr.appendChild(ntd(fpct(r.chg_1m),cc(r.chg_1m)));
+    tr.appendChild(ntd(fpct(r.chg_3m),cc(r.chg_3m)));
+    tr.appendChild(ntd(r.atr_x!=null?Number(r.atr_x).toFixed(2):'--',axc));
+    tr.appendChild(ntd(r.vol_ratio!=null?Number(r.vol_ratio).toFixed(1):'--',r.vol_ratio>2?'vhi':''));
+    tr.appendChild(ntd(r.vars!=null?r.vars.toFixed(0):'--',r.vars>=60?'up':r.vars<40?'dn':'neu'));
+    tr.appendChild(ntd(fpct(r.from_52h),cc(r.from_52h)));
+    var rsV=r.rs!=null?String(r.rs):'--';
+    var rsC=r.rs!=null?(r.rs>=80?'rs-hi':r.rs<40?'rs-lo':'rs-ok'):'';
+    tr.appendChild(ntd(rsV,rsC));
+    var tds=document.createElement('td');
+    var cv=document.createElement('canvas');cv.width=84;cv.height=22;cv.className='sp';
+    cv._sym=r.symbol;cv.onclick=function(e){e.stopPropagation();loadTV(this._sym);};
+    tds.appendChild(cv);tr.appendChild(tds);
+    var isBO=(r.vol_ratio!=null&&r.vol_ratio>=1.5)&&(r.from_52h!=null&&r.from_52h>=-5)&&(r.chg_pct!=null&&r.chg_pct>0);
+    if(isBO)tr.classList.add('bo');
+    else if(r.rs!=null&&r.rs>=80)tr.classList.add('rs-leader');
+    tb.appendChild(tr);
+    if(r.closes&&r.closes.length)dsp(cv,r.closes);
+  });
+}
+function hilite(sym){
+  document.querySelectorAll('#tbod tr').forEach(function(tr){var s=tr.querySelector('.sym');tr.classList.toggle('sel',!!(s&&s.textContent===sym));});
+  var found=Array.from(document.querySelectorAll('#tbod tr')).find(function(tr){var s=tr.querySelector('.sym');return s&&s.textContent===sym;});
+  if(found)found.scrollIntoView({block:'nearest'});
+}
+function dsp(c,cl){
+  var a=(cl||[]).filter(function(x){return x!=null;});if(!a.length)return;
+  var ctx=c.getContext('2d'),w=c.width,h=c.height;
+  var mn=Math.min.apply(null,a),mx=Math.max.apply(null,a),rng=mx-mn||1;
+  ctx.clearRect(0,0,w,h);ctx.beginPath();ctx.strokeStyle=a[a.length-1]>=a[0]?'#26a69a':'#ef5350';ctx.lineWidth=1.2;
+  a.forEach(function(v,i){var x=(i/(a.length-1))*w,y=h-1-((v-mn)/rng)*(h-3);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+}
+function populateSec(){
+  var secs=[];S.stocks.forEach(function(r){if(r.sector&&secs.indexOf(r.sector)<0)secs.push(r.sector);});secs.sort();
+  var sel=document.getElementById('secf');while(sel.options.length>1)sel.remove(1);
+  secs.forEach(function(s){var o=document.createElement('option');o.value=o.textContent=s;sel.appendChild(o);});
+}
+function renderHeatmap(){
+  var el=document.getElementById('shm');el.innerHTML='';
+  S.sectors.forEach(function(s){
+    var div=document.createElement('div');div.className='sc '+hc(s.avg);
+    var sn=document.createElement('div');sn.className='sn';sn.textContent=s.name;
+    var sp=document.createElement('div');sp.className='sp';sp.textContent=fpct(s.avg);
+    var ss=document.createElement('div');ss.className='ss';ss.textContent='A'+s.a+' G'+s.d;
+    div.appendChild(sn);div.appendChild(sp);div.appendChild(ss);
+    div.title=s.t.slice(0,10).join(', ');
+    div.onclick=(function(sec){return function(){document.getElementById('secf').value=sec.name;renderTable();};})(s);
+    el.appendChild(div);
+  });
+}
+function renderBreadth(){
+  var b=S.breadth;
+  var items=[
+    {l:'Advance',v:b.advance,c:'up'},{l:'Decline',v:b.decline,c:'dn'},
+    {l:'A/D Ratio',v:(b.advance&&b.decline)?Number(b.advance/b.decline).toFixed(2):'--',c:(b.advance||0)>(b.decline||1)?'up':'dn'},
+    {l:'% > SMA50',v:(b.pct_above_ma50||0)+'%',c:(b.pct_above_ma50||0)>=60?'up':'dn'},
+    {l:'% > SMA200',v:(b.pct_above_ma200||0)+'%',c:(b.pct_above_ma200||0)>=55?'up':'dn'},
+    {l:'Grade A',v:b.grade_a,c:'up'},{l:'Grade B',v:b.grade_b,c:'neu'},{l:'Grade C',v:b.grade_c,c:'dn'},
+  ];
+  var h='';items.forEach(function(i){h+='<div class="mc"><div class="ml">'+i.l+'</div><div class="mv '+i.c+'">'+(i.v!=null?i.v:'--')+'</div></div>';});
+  document.getElementById('bdgrid').innerHTML=h;
+}
+function renderMacro(){
+  var m=S.macro,idx=S.indices;
+  var items=[{l:'USD/VND Mua',v:f(m.usd_buy||m.usd_vnd_buy,0)},{l:'USD/VND Ban',v:f(m.usd_sell||m.usd_vnd_sell,0)},{l:'Vang SJC Mua',v:m.gold_buy?(m.gold_buy+'k'):'--'},{l:'Vang SJC Ban',v:m.gold_sell?(m.gold_sell+'k'):'--'}];
+  Object.keys(idx).forEach(function(sym){var d=idx[sym];items.push({l:sym,v:f(d.last,2),s:fpct(d.chg_pct),c:cc(d.chg_pct)});});
+  var h='';items.forEach(function(i){h+='<div class="mc"><div class="ml">'+i.l+'</div><div class="mv">'+(i.v||'--')+'</div>'+(i.s?'<div class="ms '+i.c+'">'+i.s+'</div>':'')+'</div>';});
+  document.getElementById('mgrid').innerHTML=h;
+}
+function renderEtf(){
+  var el=document.getElementById('egrid');
+  if(!(S.etf||[]).length){el.innerHTML='<div style="color:#434651;font-size:11px">Chua co ETF data</div>';return;}
+  el.innerHTML='';
+  S.etf.forEach(function(e){
+    var div=document.createElement('div');div.className='mc';div.style.cursor='pointer';
+    div.onclick=(function(sym){return function(){loadTV(sym);};})(e.symbol);
+    var ml=document.createElement('div');ml.className='ml';ml.textContent=e.symbol;
+    var mv=document.createElement('div');mv.className='mv';mv.textContent=f(e.nav,2)+'k';
+    var ms=document.createElement('div');ms.className='ms '+cc(e.chg_pct);ms.textContent=fpct(e.chg_pct);
+    var tops=document.createElement('div');tops.style.cssText='font-size:9px;color:#434651;margin-top:2px';
+    tops.textContent=(e.top5||[]).slice(0,3).join(' ');
+    div.appendChild(ml);div.appendChild(mv);div.appendChild(ms);div.appendChild(tops);el.appendChild(div);
+  });
+}
+function swTab(id){
+  ['hm','bd','mc','et'].forEach(function(t){document.getElementById('t-'+t).style.display=t===id?'block':'none';});
+  document.querySelectorAll('.rt').forEach(function(b,i){b.classList.toggle('on',['hm','bd','mc','et'][i]===id);});
+}
+function openM(id){
+  document.getElementById('modal-'+id).classList.add('open');
+  if(id==='cal'){var fr=document.getElementById('cal-frame');if(!fr.src||fr.src==='about:blank')fr.src='https://www.tradingview.com/embed-widget/events/?locale=vi_VN#%7B%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Afalse%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22importanceFilter%22%3A%22-1%2C0%2C1%22%2C%22countryFilter%22%3A%22vn%2Cus%2Ceu%2Ccn%22%7D';}
+  if(id==='brd'){var fr=document.getElementById('brd-frame');if(!fr.src||fr.src==='about:blank')fr.src='https://www.tradingview.com/embed-widget/market-overview/?locale=vi_VN#%7B%22colorTheme%22%3A%22dark%22%2C%22dateRange%22%3A%2212M%22%2C%22showChart%22%3Atrue%2C%22isTransparent%22%3Afalse%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22tabs%22%3A%5B%7B%22title%22%3A%22VN%22%2C%22symbols%22%3A%5B%7B%22s%22%3A%22HOSE%3AVNINDEX%22%7D%2C%7B%22s%22%3A%22HOSE%3AVN30%22%7D%2C%7B%22s%22%3A%22HNX%3AHNXINDEX%22%7D%5D%7D%2C%7B%22title%22%3A%22World%22%2C%22symbols%22%3A%5B%7B%22s%22%3A%22INDEX%3ASPX%22%7D%2C%7B%22s%22%3A%22INDEX%3ANDX%22%7D%2C%7B%22s%22%3A%22INDEX%3AHSI%22%7D%5D%7D%5D%7D';}
+}
+function closeM(id){document.getElementById('modal-'+id).classList.remove('open');}
+function toggleGuide(){document.getElementById('guide').classList.toggle('open');}
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.key==='Escape'){['cal','brd'].forEach(function(id){closeM(id);});document.getElementById('guide').classList.remove('open');return;}
+  var rows=document.querySelectorAll('#tbod tr');if(!rows.length)return;
+  if(e.key==='ArrowDown'){focRow=Math.min(focRow+1,rows.length-1);e.preventDefault();}
+  else if(e.key==='ArrowUp'){focRow=Math.max(focRow-1,0);e.preventDefault();}
+  else return;
+  rows.forEach(function(r,i){r.classList.toggle('sel',i===focRow);});
+  rows[focRow].scrollIntoView({block:'nearest'});
+  var s=rows[focRow].querySelector('.sym');if(s)loadTV(s.textContent);
+});
+buildHeader();
+/* Auto-load on page open */
+fetchAll();
+
+</script>
+</body>
+</html>

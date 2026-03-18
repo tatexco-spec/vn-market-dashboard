@@ -1,0 +1,63 @@
+name: Refresh Market Data
+
+on:
+  # Chay luc 08:30 UTC = 15:30 ICT, thu 2 - thu 6
+  schedule:
+    - cron: '30 8 * * 1-5'
+  # Cho phep chay thu cong
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install vnstock numpy
+
+      - name: Build data
+        run: python3 scripts/build_data.py
+
+      - name: Commit & push data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/snapshot.json
+          git diff --staged --quiet || git commit -m "data: auto-refresh $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+
+  # Deploy len GitHub Pages sau khi build xong
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main  # lay commit moi nhat (sau khi push data)
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'  # upload toan bo repo (index.html + data/)
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
