@@ -162,7 +162,7 @@ tbody tr.rs-leader{border-left:2px solid #26a69a}
         <div class="pulse">Dang tai data...</div>
         <div style="font-size:10px;margin-top:4px;color:#363a45">Sau do click co phieu de mo TradingView chart</div>
       </div>
-      <iframe id="tv-frame" scrolling="no" allowtransparency="true" allowfullscreen="true" frameborder="0"></iframe>
+      <div id="tv-container" style="width:100%;height:100%;display:none"></div>
     </div>
     <div id="rbot">
       <div id="rtnav">
@@ -230,18 +230,19 @@ var VN30=['VCB','BID','CTG','MBB','TCB','ACB','VPB','HDB','STB','LPB',
           'VHM','VIC','VRE','NVL','KDH','HPG','MSN','MWG','VNM','SAB',
           'PNJ','FPT','CMG','GAS','PLX','VJC','HVN','SSI','VCI','REE'];
 
+/* Map sàn đúng cho từng mã */
+var HNX_STOCKS=['SHB','NVB','ACB','TNG','NKG','MBS','PVS','DBC','VCS',
+  'DPM','DCM','DGC','HAH','VSC','IDI','MSH','PC1','VND','HUT'];
+var UPCOM_STOCKS=['OIL','BSR','QNS','ACV','MCH','HVN','FOX','VTP','VGI'];
+
 function tvPfx(sym){
   if(['HNXINDEX','HNX30'].indexOf(sym)>=0)return'HNX:';
   if(['UPCOMINDEX'].indexOf(sym)>=0)return'UPCOM:';
+  if(HNX_STOCKS.indexOf(sym)>=0)return'HNX:';
+  if(UPCOM_STOCKS.indexOf(sym)>=0)return'UPCOM:';
   return'HOSE:';
 }
-function tvUrl(sym,iv,cs){
-  var ts=encodeURIComponent(tvPfx(sym)+sym);
-  return'https://www.tradingview.com/widgetembed/?frameElementId=tv_chart_main&symbol='+ts+
-    '&interval='+(iv||'D')+'&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1'+
-    '&toolbarbg=1e222d&theme=dark&style='+(cs||'1')+'&timezone=Asia%2FHo_Chi_Minh'+
-    '&withdateranges=1&showpopupbutton=1&locale=vi_VN';
-}
+/* tvUrl removed — using TradingView.widget() */
 
 function f(v,d){if(v==null)return'--';d=d==null?2:d;return Number(v).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function fp(v){if(v==null)return'--';if(v>=1000)return(v/1000).toFixed(1)+'k';return Number(v).toFixed(1);}
@@ -282,10 +283,41 @@ function loadTV(sym){
   var idx=(S.indices||{})[sym];
   if(st){document.getElementById('cprc').textContent=fp(st.last);document.getElementById('cchg').textContent=fpct(st.chg_pct);document.getElementById('cchg').className=cc(st.chg_pct);}
   else if(idx){document.getElementById('cprc').textContent=f(idx.last,2);document.getElementById('cchg').textContent=fpct(idx.chg_pct);document.getElementById('cchg').className=cc(idx.chg_pct);}
-  var frame=document.getElementById('tv-frame');
   document.getElementById('tv-ph').style.display='none';
-  frame.style.display='block';
-  frame.src=tvUrl(sym,S.iv,S.cs);
+  var wrap=document.getElementById('tv-container');
+  wrap.style.display='block';
+  wrap.innerHTML='';
+  var cid='tv_'+Date.now();
+  var el=document.createElement('div');el.id=cid;el.style.cssText='width:100%;height:100%';
+  wrap.appendChild(el);
+  var old=document.getElementById('_tvscript');if(old)old.remove();
+  var ivMap={D:'D',W:'W',M:'M','12M':'12M','60M':'60M'};
+  var cfg={
+    autosize:true,symbol:tvPfx(sym)+sym,
+    interval:ivMap[S.iv]||'D',
+    timezone:'Asia/Ho_Chi_Minh',theme:'dark',
+    style:S.cs,locale:'vi_VN',
+    toolbar_bg:'#1e222d',
+    backgroundColor:'rgba(19,23,34,1)',
+    enable_publishing:false,
+    withdateranges:true,
+    hide_top_toolbar:false,
+    save_image:true,
+    container_id:cid,
+    studies:['Volume@tv-basicstudies','MASimple@tv-basicstudies|{"length":20}','MASimple@tv-basicstudies|{"length":50}'],
+    overrides:{
+      'mainSeriesProperties.candleStyle.upColor':'#26a69a',
+      'mainSeriesProperties.candleStyle.downColor':'#ef5350',
+      'mainSeriesProperties.candleStyle.borderUpColor':'#26a69a',
+      'mainSeriesProperties.candleStyle.borderDownColor':'#ef5350',
+      'mainSeriesProperties.candleStyle.wickUpColor':'#26a69a',
+      'mainSeriesProperties.candleStyle.wickDownColor':'#ef5350'
+    }
+  };
+  var script=document.createElement('script');script.id='_tvscript';
+  script.src='https://s3.tradingview.com/tv.js';script.async=true;
+  script.onload=function(){try{new TradingView.widget(cfg);}catch(e){console.warn('TV:',e);}};
+  document.head.appendChild(script);
 }
 function setIv(iv){S.iv=iv;['D','W','M','12M','60M'].forEach(function(k){var b=document.getElementById('iv-'+k);if(b)b.classList.toggle('on',k===iv);});if(S.selSym)loadTV(S.selSym);}
 function setCs(cs){S.cs=cs;['1','9','3','8'].forEach(function(k){var b=document.getElementById('cs-'+k);if(b)b.classList.toggle('on',k===cs);});if(S.selSym)loadTV(S.selSym);}
