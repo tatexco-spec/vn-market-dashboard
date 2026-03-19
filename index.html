@@ -101,8 +101,10 @@ tbody tr.rs-leader{border-left:2px solid #26a69a}
 @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}.pulse{animation:pulse 1.2s ease infinite}
 
 </style>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
+
 <div id="tb">
   <span class="logo">VN<b>MARKET</b></span>
   <div id="idx-row">
@@ -136,7 +138,7 @@ tbody tr.rs-leader{border-left:2px solid #26a69a}
     <div id="tw"><table><thead><tr id="thr"></tr></thead><tbody id="tbod"></tbody></table></div>
     <div id="foot">
       <span>Arrow keys navigate</span><span>Blue dot=VN30</span>
-      <span>Bo=breakout RS=MarketSmith 1-99</span><span>vnstock/VCI</span>
+      <span>Bo=breakout RS=MarketSmith</span><span>vnstock/VCI</span>
     </div>
   </div>
   <div id="R">
@@ -158,11 +160,14 @@ tbody tr.rs-leader{border-left:2px solid #26a69a}
       </div>
     </div>
     <div id="tv-wrap">
-      <div id="tv-ph">
-        <div class="pulse">Dang tai data...</div>
-        <div style="font-size:10px;margin-top:4px;color:#363a45">Sau do click co phieu de mo TradingView chart</div>
+      <div id="tv-ph" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%">
+        <div class="pulse">Nhan <b>"Lay data vnstock"</b> de tai du lieu</div>
+        <div style="font-size:10px;color:#363a45">Sau do click co phieu de xem chart nen + volume</div>
       </div>
-      <iframe id="tv-frame" scrolling="no" allowtransparency="true" allowfullscreen="true" frameborder="0"></iframe>
+      <div id="tv-container" style="display:none;width:100%;height:100%;flex-direction:column">
+        <div id="lw-main" style="flex:1;min-height:0"></div>
+        <div id="lw-vol" style="height:90px;flex-shrink:0"></div>
+      </div>
     </div>
     <div id="rbot">
       <div id="rtnav">
@@ -188,23 +193,24 @@ tbody tr.rs-leader{border-left:2px solid #26a69a}
 </div>
 <div class="mov" id="modal-brd" onclick="closeM('brd')">
   <div class="mbox" onclick="event.stopPropagation()">
-    <div class="mhdr"><h3>MARKET OVERVIEW</h3><button onclick="closeM('brd')">x</button></div>
+    <div class="mhdr"><h3>MARKET OVERVIEW -- VN + WORLD</h3><button onclick="closeM('brd')">x</button></div>
     <iframe id="brd-frame" allowtransparency="true" frameborder="0"></iframe>
   </div>
 </div>
 <div id="guide">
   <h4>Column Guide</h4>
   <dl>
-    <div class="gi"><dt>Grade</dt><dd>A=EMA10&gt;EMA20&gt;SMA50. B=Mixed. C=Down.</dd></div>
-    <div class="gi"><dt>ATRx</dt><dd>(Price-SMA50)/ATR14. &gt;2=overextended.</dd></div>
-    <div class="gi"><dt>V/TB</dt><dd>Vol/TB20. &gt;2=spike.</dd></div>
-    <div class="gi"><dt>VARS</dt><dd>Vol-Adj RS vs VNI 0-100. 60+=manh.</dd></div>
-    <div class="gi"><dt>RS</dt><dd>MarketSmith RS 1-99.<br>40%*12T+20%*3T+20%*1T+20%*1W<br><span style="color:#b5e853">80+</span>=top. <span style="color:#ef5350">&lt;40</span>=yeu.</dd></div>
-    <div class="gi"><dt>Breakout row</dt><dd>Vang: Vol&ge;1.5x+gia trong 5% dinh 52T+xanh.<br>Vien xanh: RS&ge;80.</dd></div>
+    <div class="gi"><dt>Grade</dt><dd>A = EMA10 &gt; EMA20 &gt; SMA50.<br>B = Mixed. C = Down.</dd></div>
+    <div class="gi"><dt>ATRx</dt><dd>(Price-SMA50)/ATR14. &gt;2 = overextended.</dd></div>
+    <div class="gi"><dt>V/TB</dt><dd>Vol hom nay / TB20. &gt;2 = spike.</dd></div>
+    <div class="gi"><dt>VARS</dt><dd>Vol-Adjusted RS vs VNI (0-100). 60+ = manh.</dd></div>
+    <div class="gi"><dt>RS</dt><dd>MarketSmith RS 1-99.<br>Score = 40%*12T + 20%*3T + 20%*1T + 20%*1W<br>Rank percentile trong danh sach.<br><span style="color:#b5e853">80+</span> = top. <span style="color:#ef5350">&lt;40</span> = yeu.</dd></div>
+    <div class="gi"><dt>Breakout</dt><dd>Nen vang: Vol&gt;=1.5x + gia trong 5% dinh 52T + ngay xanh.<br>Vien xanh: RS&gt;=80 (RS leader).</dd></div>
   </dl>
   <button onclick="toggleGuide()" style="margin-top:8px;background:#ef5350;border:none;color:#fff;padding:7px;border-radius:4px;font:inherit;font-size:11px;cursor:pointer;width:100%">Close</button>
 </div>
 <div id="toast"></div>
+
 <script>
 
 var S = {stocks:[], indices:{}, sectors:[], breadth:{}, macro:{}, etf:[], selSym:null, iv:'D', cs:'1'};
@@ -213,8 +219,9 @@ var sortCol = 'rs', sortAsc = false, focRow = -1;
 var SM = {
   VCB:'Ngan hang',BID:'Ngan hang',CTG:'Ngan hang',MBB:'Ngan hang',TCB:'Ngan hang',
   ACB:'Ngan hang',VPB:'Ngan hang',HDB:'Ngan hang',STB:'Ngan hang',LPB:'Ngan hang',
+  OCB:'Ngan hang',TPB:'Ngan hang',SHB:'Ngan hang',EIB:'Ngan hang',
   SSI:'Chung khoan',VCI:'Chung khoan',HCM:'Chung khoan',MBS:'Chung khoan',VND:'Chung khoan',
-  VHM:'BDS',VIC:'BDS',VRE:'BDS',NVL:'BDS',KDH:'BDS',PDR:'BDS',DXG:'BDS',KBC:'BDS',
+  VHM:'BDS',VIC:'BDS',VRE:'BDS',NVL:'BDS',KDH:'BDS',PDR:'BDS',DXG:'BDS',BCM:'BDS',KBC:'BDS',
   HPG:'Thep',HSG:'Thep',NKG:'Thep',
   MSN:'Tieu dung',MWG:'Tieu dung',VNM:'Tieu dung',SAB:'Tieu dung',PNJ:'Tieu dung',DBC:'Tieu dung',
   FPT:'Cong nghe',CMG:'Cong nghe',
@@ -226,22 +233,24 @@ var SM = {
   VHC:'Thuy san',ANV:'Thuy san',IDI:'Thuy san',
   TCM:'Det may',TNG:'Det may',MSH:'Det may'
 };
-var VN30=['VCB','BID','CTG','MBB','TCB','ACB','VPB','HDB','STB','LPB',
-          'VHM','VIC','VRE','NVL','KDH','HPG','MSN','MWG','VNM','SAB',
-          'PNJ','FPT','CMG','GAS','PLX','VJC','HVN','SSI','VCI','REE'];
+var VN30 = ['VCB','BID','CTG','MBB','TCB','ACB','VPB','HDB','STB','LPB',
+            'VHM','VIC','VRE','NVL','KDH','HPG','MSN','MWG','VNM','SAB',
+            'PNJ','FPT','CMG','GAS','PLX','VJC','HVN','SSI','VCI','REE'];
+
+/* Map sàn đúng */
+var HNX_LIST=['SHB','NVB','ACB','TNG','NKG','MBS','PVS','DBC','VCS',
+  'DPM','DCM','DGC','HAH','VSC','IDI','MSH','PC1','VND','HUT',
+  'NVL_OLD','SHS','CEO','HUT','NTP','PGS','VGS'];
+var UPCOM_LIST=['OIL','BSR','QNS','ACV','MCH','FOX','VTP','VGI','POW'];
 
 function tvPfx(sym){
-  if(['HNXINDEX','HNX30'].indexOf(sym)>=0)return'HNX:';
-  if(['UPCOMINDEX'].indexOf(sym)>=0)return'UPCOM:';
-  return'HOSE:';
+  if(['HNXINDEX','HNX30'].indexOf(sym)>=0) return 'HNX:';
+  if(['UPCOMINDEX'].indexOf(sym)>=0) return 'UPCOM:';
+  if(HNX_LIST.indexOf(sym)>=0) return 'HNX:';
+  if(UPCOM_LIST.indexOf(sym)>=0) return 'UPCOM:';
+  return 'HOSE:';
 }
-function tvUrl(sym,iv,cs){
-  var ts=encodeURIComponent(tvPfx(sym)+sym);
-  return'https://www.tradingview.com/widgetembed/?frameElementId=tv_chart_main&symbol='+ts+
-    '&interval='+(iv||'D')+'&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=1'+
-    '&toolbarbg=1e222d&theme=dark&style='+(cs||'1')+'&timezone=Asia%2FHo_Chi_Minh'+
-    '&withdateranges=1&showpopupbutton=1&locale=vi_VN';
-}
+
 
 function f(v,d){if(v==null)return'--';d=d==null?2:d;return Number(v).toLocaleString('vi-VN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function fp(v){if(v==null)return'--';if(v>=1000)return(v/1000).toFixed(1)+'k';return Number(v).toFixed(1);}
@@ -251,67 +260,192 @@ function hc(v){
   if(v>=2.5)return'hp3';if(v>=1)return'hp2';if(v>=0.3)return'hp1';
   if(v>-0.3)return'hn0';if(v>-1)return'hn1';if(v>-2.5)return'hn2';return'hn3';
 }
+function exJ(t){var s=t.indexOf('{'),e=t.lastIndexOf('}');if(s<0||e<0)return null;try{return JSON.parse(t.slice(s,e+1));}catch(_){return null;}}
 function toast(m,d){var el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show');},d||3500);}
 
-/* ── Load snapshot.json (thay vi goi API) ── */
-async function fetchAll(){
-  var btn=document.getElementById('fbtn');
-  btn.textContent='Dang tai...';btn.className='tbtn busy';btn.disabled=true;
-  toast('Dang tai data/snapshot.json...',8000);
-  try{
-    var resp=await fetch('data/snapshot.json?t='+Date.now());
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    var json=await resp.json();
-    if(json&&(json.stocks||[]).length){
-      ingest(json);
-      toast('Cap nhat: '+json.stocks.length+' co phieu | '+json.updated,4000);
-    }else{
-      toast('Khong co data. Chay: python3 scripts/build_data.py',5000);
-    }
-  }catch(e){
-    toast('Loi tai JSON: '+e.message+' | Chay build_data.py truoc',5000);
+/* ── Load TV chart ── */
+function loadTV(sym) {
+  S.selSym = sym; hilite(sym);
+  document.getElementById('csym').textContent = sym;
+  var st = S.stocks.find(function(x){ return x.symbol === sym; });
+  var idx = (S.indices || {})[sym];
+  if (st) {
+    document.getElementById('cprc').textContent = fp(st.last);
+    document.getElementById('cchg').textContent = fpct(st.chg_pct);
+    document.getElementById('cchg').className = cc(st.chg_pct);
+  } else if (idx) {
+    document.getElementById('cprc').textContent = f(idx.last, 2);
+    document.getElementById('cchg').textContent = fpct(idx.chg_pct);
+    document.getElementById('cchg').className = cc(idx.chg_pct);
   }
-  btn.textContent='Tai lai data';btn.className='tbtn';btn.disabled=false;
+
+  var closes = (st && st.closes) ? st.closes : ((idx && idx.closes) ? idx.closes : []);
+  if (!closes || !closes.length) {
+    var ph = document.getElementById('tv-ph');
+    ph.style.display = 'flex';
+    ph.innerHTML = '<div style="color:#434651;font-size:11px">Chua co data closes cho ' + sym + ' — fetch lai data</div>';
+    document.getElementById('tv-container').style.display = 'none';
+    return;
+  }
+  drawChart(sym, closes);
 }
 
-/* ── TV Chart ── */
-function loadTV(sym){
-  S.selSym=sym;hilite(sym);
-  document.getElementById('csym').textContent=sym;
-  var st=S.stocks.find(function(x){return x.symbol===sym;});
-  var idx=(S.indices||{})[sym];
-  if(st){document.getElementById('cprc').textContent=fp(st.last);document.getElementById('cchg').textContent=fpct(st.chg_pct);document.getElementById('cchg').className=cc(st.chg_pct);}
-  else if(idx){document.getElementById('cprc').textContent=f(idx.last,2);document.getElementById('cchg').textContent=fpct(idx.chg_pct);document.getElementById('cchg').className=cc(idx.chg_pct);}
-  var frame=document.getElementById('tv-frame');
-  document.getElementById('tv-ph').style.display='none';
-  frame.style.display='block';
-  frame.src=tvUrl(sym,S.iv,S.cs);
-}
-function setIv(iv){S.iv=iv;['D','W','M','12M','60M'].forEach(function(k){var b=document.getElementById('iv-'+k);if(b)b.classList.toggle('on',k===iv);});if(S.selSym)loadTV(S.selSym);}
-function setCs(cs){S.cs=cs;['1','9','3','8'].forEach(function(k){var b=document.getElementById('cs-'+k);if(b)b.classList.toggle('on',k===cs);});if(S.selSym)loadTV(S.selSym);}
+var _lwChart = null, _lwVol = null;
 
-document.getElementById('ip-VI').onclick=function(){selIdx('VI','VNINDEX');};
-document.getElementById('ip-V3').onclick=function(){selIdx('V3','VN30');};
-document.getElementById('ip-HX').onclick=function(){selIdx('HX','HNXINDEX');};
-document.getElementById('ip-UC').onclick=function(){selIdx('UC','UPCOMINDEX');};
+function drawChart(sym, closes) {
+  var ph = document.getElementById('tv-ph');
+  var wrap = document.getElementById('tv-container');
+
+  if (typeof LightweightCharts === 'undefined') {
+    ph.style.display = 'flex';
+    ph.innerHTML = '<div style="color:#ef5350">LightweightCharts chua load</div>';
+    return;
+  }
+
+  ph.style.display = 'none';
+  wrap.style.display = 'flex';
+
+  if (_lwChart) { try{_lwChart.remove();}catch(e){} _lwChart = null; }
+  if (_lwVol)   { try{_lwVol.remove();}catch(e){} _lwVol = null; }
+  document.getElementById('lw-main').innerHTML = '';
+  document.getElementById('lw-vol').innerHTML = '';
+
+  /* Build time series — tinh nguoc tu hom nay, bo qua T7 CN */
+  var today = new Date();
+  var series = [];
+  var d = new Date(today);
+  for (var i = closes.length - 1; i >= 0; i--) {
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+    var yy = d.getFullYear();
+    var mm = String(d.getMonth()+1).padStart(2,'0');
+    var dd = String(d.getDate()).padStart(2,'0');
+    series.unshift({time: yy+'-'+mm+'-'+dd, value: closes[i]});
+    d.setDate(d.getDate() - 1);
+  }
+
+  var mainEl = document.getElementById('lw-main');
+  var volEl  = document.getElementById('lw-vol');
+
+  var chart = LightweightCharts.createChart(mainEl, {
+    width: mainEl.clientWidth, height: mainEl.clientHeight,
+    layout: {background:{type:'solid',color:'#131722'}, textColor:'#d1d4dc'},
+    grid: {vertLines:{color:'#1e222d'}, horzLines:{color:'#1e222d'}},
+    crosshair: {mode: LightweightCharts.CrosshairMode.Normal},
+    rightPriceScale: {borderColor:'#2a2e39'},
+    timeScale: {borderColor:'#2a2e39', timeVisible:false, rightOffset:5},
+  });
+  _lwChart = chart;
+
+  /* Line chart tu closes */
+  var lineSeries = chart.addLineSeries({
+    color: '#2962ff', lineWidth: 2,
+    crosshairMarkerVisible: true,
+    lastValueVisible: true,
+    priceLineVisible: true,
+  });
+  lineSeries.setData(series);
+
+  /* MA20 */
+  if (series.length >= 20) {
+    var ma20s = chart.addLineSeries({color:'#f59f00',lineWidth:1,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+    var d20 = [];
+    for (var i = 19; i < series.length; i++) {
+      var s = 0; for (var j = i-19; j <= i; j++) s += series[j].value;
+      d20.push({time: series[i].time, value: Math.round(s/20*100)/100});
+    }
+    ma20s.setData(d20);
+  }
+
+  /* MA50 */
+  if (series.length >= 50) {
+    var ma50s = chart.addLineSeries({color:'#ef5350',lineWidth:1,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+    var d50 = [];
+    for (var i = 49; i < series.length; i++) {
+      var s = 0; for (var j = i-49; j <= i; j++) s += series[j].value;
+      d50.push({time: series[i].time, value: Math.round(s/50*100)/100});
+    }
+    ma50s.setData(d50);
+  }
+
+  chart.timeScale().fitContent();
+
+  /* Resize */
+  var ro = new ResizeObserver(function(){
+    chart.applyOptions({width:mainEl.clientWidth, height:mainEl.clientHeight});
+  });
+  ro.observe(mainEl);
+}
+
+
+function setIv(iv) {
+  S.iv = iv;
+  ['D','W','M','12M','60M'].forEach(function(k){var b=document.getElementById('iv-'+k);if(b)b.classList.toggle('on',k===iv);});
+  if (S.selSym) fetchChart(S.selSym);
+}
+function setCs(cs) {
+  S.cs = cs;
+  ['1','9','3','8'].forEach(function(k){var b=document.getElementById('cs-'+k);if(b)b.classList.toggle('on',k===cs);});
+  if (S.selSym) fetchChart(S.selSym);
+}
+
 function selIdx(code,sym){
   document.querySelectorAll('.ip').forEach(function(el){el.classList.remove('sel');});
   var el=document.getElementById('ip-'+code);if(el)el.classList.add('sel');
   loadTV(sym);
 }
 
-/* ── Ingest ── */
+/* ── Fetch data ── */
+async function fetchAll() {
+  var btn = document.getElementById('fbtn');
+  btn.textContent = 'Dang tai...'; btn.className = 'tbtn busy'; btn.disabled = true;
+  toast('Dang tai data/snapshot.json...', 6000);
+  try {
+    var resp = await fetch('data/snapshot.json?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — chay build_data.py truoc');
+    var json = await resp.json();
+    if (json && (json.stocks||[]).length) {
+      ingest(json);
+      toast('Cap nhat: ' + json.stocks.length + ' co phieu | ' + (json.updated||''), 4000);
+    } else {
+      toast('snapshot.json trong — chay: python3 scripts/build_data.py', 5000);
+    }
+  } catch(e) {
+    toast('Loi: ' + e.message, 5000);
+  }
+  btn.textContent = 'Tai lai data'; btn.className = 'tbtn'; btn.disabled = false;
+}
+
+
+/* ── Ingest + MarketSmith RS percentile rank ── */
 function ingest(json){
   var stocks=json.stocks||[];
+
+  /* Compute MarketSmith RS 1-99 percentile rank */
+  var scores=stocks.map(function(s){
+    return s.rs_ms!=null ? s.rs_ms : -9999;
+  });
+  var sorted=scores.slice().sort(function(a,b){return a-b;});
+  var n=sorted.length;
+  stocks.forEach(function(s,i){
+    var sc=scores[i];
+    if(sc===-9999){s.rs=null;return;}
+    var rank=0;
+    for(var j=0;j<n;j++){if(sorted[j]<sc)rank++;}
+    s.rs=Math.max(1,Math.min(99,Math.round(rank/(n-1)*98)+1));
+  });
+
   stocks.forEach(function(s){
     s.sector=s.sector||SM[s.symbol]||'Khac';
     s.in_vn30=!!(s.in_vn30||(VN30.indexOf(s.symbol)>=0));
   });
-  S.stocks=stocks;S.indices=json.indices||{};S.breadth=json.breadth||{};S.macro=json.macro||{};S.etf=json.etf||[];
-  buildSectors();renderChips();renderBbar();renderTable();populateSec();
+  S.stocks=stocks;
+  S.indices=json.indices||{};S.breadth=json.breadth||{};S.macro=json.macro||{};S.etf=json.etf||[];
+  buildSectors();
+  renderChips();renderBbar();renderTable();populateSec();
   renderHeatmap();renderBreadth();renderMacro();renderEtf();
   document.getElementById('ts').textContent=json.updated||'';
 }
+
 function buildSectors(){
   var m={};
   S.stocks.forEach(function(s){
@@ -322,6 +456,7 @@ function buildSectors(){
   });
   S.sectors=Object.values(m).map(function(d){d.avg=d.n?d.cs/d.n:0;return d;}).sort(function(a,b){return b.avg-a.avg;});
 }
+
 function renderChips(){
   var map={VI:'VNINDEX',V3:'VN30',HX:'HNXINDEX',UC:'UPCOMINDEX'};
   Object.keys(map).forEach(function(k){
@@ -331,6 +466,7 @@ function renderChips(){
     if(ce){ce.textContent=fpct(d.chg_pct);ce.className='c '+cc(d.chg_pct);}
   });
 }
+
 function renderBbar(){
   var b=S.breadth;
   var items=[
@@ -343,6 +479,7 @@ function renderBbar(){
   var h='';items.forEach(function(i){h+='<div class="bc"><div class="bl">'+i.l+'</div><div class="bv '+i.c+'">'+(i.v!=null?i.v:'--')+'</div></div>';});
   document.getElementById('bbar').innerHTML=h;
 }
+
 var COLS=[
   {k:'symbol',l:'Ma'},{k:'sector',l:'Nganh'},{k:'grade',l:'Gr'},
   {k:'last',l:'Gia'},{k:'chg_pct',l:'%D'},{k:'chg_1w',l:'%1T'},
@@ -350,6 +487,7 @@ var COLS=[
   {k:'atr_x',l:'ATRx'},{k:'vol_ratio',l:'V/TB'},{k:'vars',l:'VARS'},{k:'from_52h',l:'52H%'},
   {k:'rs',l:'RS'},
 ];
+
 function buildHeader(){
   var tr=document.getElementById('thr');tr.innerHTML='';
   COLS.forEach(function(col){
@@ -362,6 +500,7 @@ function buildHeader(){
   });
   var sp=document.createElement('th');sp.textContent='Spark';tr.appendChild(sp);
 }
+
 function getRows(){
   var q=(document.getElementById('qry').value||'').toLowerCase();
   var sec=document.getElementById('secf').value;
@@ -375,6 +514,7 @@ function getRows(){
     return true;
   });
 }
+
 function renderTable(){
   var rows=getRows();
   rows.sort(function(a,b){
@@ -394,15 +534,20 @@ function renderTable(){
     var tr=document.createElement('tr');
     if(r.symbol===S.selSym)tr.classList.add('sel');
     tr.onclick=function(){loadTV(r.symbol);};
+
     var td0=document.createElement('td');
     if(r.in_vn30){var dot=document.createElement('span');dot.className='vdot';dot.title='VN30';td0.appendChild(dot);}
     var ss=document.createElement('span');ss.className='sym';ss.textContent=r.symbol;td0.appendChild(ss);
+
     var td1=document.createElement('td');
     var tg=document.createElement('span');tg.className='stg';tg.textContent=(r.sector||'').slice(0,6);td1.appendChild(tg);
+
     var td2=document.createElement('td');
     var gs=document.createElement('span');gs.className='g'+(r.grade||'C');gs.textContent=r.grade||'--';td2.appendChild(gs);
+
     function ntd(v,cls){var td=document.createElement('td');td.textContent=v;if(cls)td.className=cls;return td;}
     var axc=r.atr_x>2?'dn':r.atr_x<-1?'neu':'up';
+
     tr.appendChild(td0);tr.appendChild(td1);tr.appendChild(td2);
     tr.appendChild(ntd(fp(r.last),''));
     tr.appendChild(ntd(fpct(r.chg_pct),cc(r.chg_pct)));
@@ -413,20 +558,28 @@ function renderTable(){
     tr.appendChild(ntd(r.vol_ratio!=null?Number(r.vol_ratio).toFixed(1):'--',r.vol_ratio>2?'vhi':''));
     tr.appendChild(ntd(r.vars!=null?r.vars.toFixed(0):'--',r.vars>=60?'up':r.vars<40?'dn':'neu'));
     tr.appendChild(ntd(fpct(r.from_52h),cc(r.from_52h)));
+
+    /* RS cell — MarketSmith 1-99 */
     var rsV=r.rs!=null?String(r.rs):'--';
     var rsC=r.rs!=null?(r.rs>=80?'rs-hi':r.rs<40?'rs-lo':'rs-ok'):'';
     tr.appendChild(ntd(rsV,rsC));
+
+    /* Sparkline */
     var tds=document.createElement('td');
     var cv=document.createElement('canvas');cv.width=84;cv.height=22;cv.className='sp';
     cv._sym=r.symbol;cv.onclick=function(e){e.stopPropagation();loadTV(this._sym);};
     tds.appendChild(cv);tr.appendChild(tds);
+
+    /* Breakout highlight */
     var isBO=(r.vol_ratio!=null&&r.vol_ratio>=1.5)&&(r.from_52h!=null&&r.from_52h>=-5)&&(r.chg_pct!=null&&r.chg_pct>0);
     if(isBO)tr.classList.add('bo');
     else if(r.rs!=null&&r.rs>=80)tr.classList.add('rs-leader');
+
     tb.appendChild(tr);
     if(r.closes&&r.closes.length)dsp(cv,r.closes);
   });
 }
+
 function hilite(sym){
   document.querySelectorAll('#tbod tr').forEach(function(tr){var s=tr.querySelector('.sym');tr.classList.toggle('sel',!!(s&&s.textContent===sym));});
   var found=Array.from(document.querySelectorAll('#tbod tr')).find(function(tr){var s=tr.querySelector('.sym');return s&&s.textContent===sym;});
@@ -478,7 +631,7 @@ function renderMacro(){
 }
 function renderEtf(){
   var el=document.getElementById('egrid');
-  if(!(S.etf||[]).length){el.innerHTML='<div style="color:#434651;font-size:11px">Chua co ETF data</div>';return;}
+  if(!(S.etf||[]).length){el.innerHTML='<div style="color:#434651;font-size:11px;padding:6px 0">Lay data truoc</div>';return;}
   el.innerHTML='';
   S.etf.forEach(function(e){
     var div=document.createElement('div');div.className='mc';div.style.cursor='pointer';
@@ -487,8 +640,9 @@ function renderEtf(){
     var mv=document.createElement('div');mv.className='mv';mv.textContent=f(e.nav,2)+'k';
     var ms=document.createElement('div');ms.className='ms '+cc(e.chg_pct);ms.textContent=fpct(e.chg_pct);
     var tops=document.createElement('div');tops.style.cssText='font-size:9px;color:#434651;margin-top:2px';
-    tops.textContent=(e.top5||[]).slice(0,3).join(' ');
-    div.appendChild(ml);div.appendChild(mv);div.appendChild(ms);div.appendChild(tops);el.appendChild(div);
+    tops.textContent=(e.top5||e.top_holdings||[]).slice(0,3).join(' ');
+    div.appendChild(ml);div.appendChild(mv);div.appendChild(ms);div.appendChild(tops);
+    el.appendChild(div);
   });
 }
 function swTab(id){
@@ -502,6 +656,7 @@ function openM(id){
 }
 function closeM(id){document.getElementById('modal-'+id).classList.remove('open');}
 function toggleGuide(){document.getElementById('guide').classList.toggle('open');}
+
 document.addEventListener('keydown',function(e){
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
   if(e.key==='Escape'){['cal','brd'].forEach(function(id){closeM(id);});document.getElementById('guide').classList.remove('open');return;}
@@ -513,8 +668,8 @@ document.addEventListener('keydown',function(e){
   rows[focRow].scrollIntoView({block:'nearest'});
   var s=rows[focRow].querySelector('.sym');if(s)loadTV(s.textContent);
 });
+
 buildHeader();
-/* Auto-load on page open */
 fetchAll();
 
 </script>
