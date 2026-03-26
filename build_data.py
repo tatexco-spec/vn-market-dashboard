@@ -3,34 +3,14 @@
 VN Market Dashboard — Data Builder
 Chay: python3 scripts/build_data.py
 Output: data/snapshot.json
-
-Rate limit vnstock:
-  Guest     : 20 req/phut  → SLEEP_SEC = 3.5 (an toan)
-  Community : 60 req/phut  → SLEEP_SEC = 1.2
-  Sponsor   : 180+ req/phut → SLEEP_SEC = 0.4
-
-Dang ky API key mien phi tai: https://vnstocks.com/login
-Sau khi co key, set bien moi truong:
-  export VNSTOCK_API_KEY="your_key_here"
-Hoac sua truc tiep VNSTOCK_API_KEY duoi day.
 """
-import json, os, sys, numpy as np, time
+import json, os, sys, numpy as np
 from datetime import datetime, timedelta
-
-# ── API key (tuy chon) ───────────────────────────────────────────────────────
-VNSTOCK_API_KEY = os.environ.get('VNSTOCK_API_KEY', '')
-if VNSTOCK_API_KEY:
-    os.environ['VNSTOCK_API_KEY'] = VNSTOCK_API_KEY
-    SLEEP_SEC = 1.2   # Community: 60 req/phut
-    print(f"API key: ***{VNSTOCK_API_KEY[-4:]}  (60 req/phut)")
-else:
-    SLEEP_SEC = 3.5   # Guest: 20 req/phut → an toan
-    print("Guest mode (20 req/phut) — se chay cham ~4 phut. Dang ky key mien phi tai vnstocks.com/login")
 
 TODAY    = datetime.now().strftime('%Y-%m-%d')
 START_1Y = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 START_3M = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
-OUT_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+OUT_DIR  = os.path.join(os.path.dirname(__file__), '..', 'data')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 STOCKS = [
@@ -66,30 +46,16 @@ VN30 = ['VCB','BID','CTG','MBB','TCB','ACB','VPB','HDB','STB','LPB',
 
 
 def fetch(sym, start, source='VCI'):
-    """Fetch OHLCV từ vnstock, fallback TCBS nếu VCI lỗi
-    Free tier: 20 req/min → cần delay >= 3s giữa mỗi request
-    Đăng ký API key miễn phí tại vnstocks.com/login để tăng lên 60/min
-    """
+    """Fetch OHLCV từ vnstock, fallback TCBS nếu VCI lỗi"""
     from vnstock import Vnstock
     for src in [source, 'TCBS']:
-        for attempt in range(3):   # retry 3 lần
-            try:
-                df = Vnstock().stock(symbol=sym, source=src).quote.history(
-                    start=start, end=TODAY, interval='1D')
-                if df is not None and len(df) >= 5:
-                    time.sleep(SLEEP_SEC)
-                    return df
-                break
-            except Exception as e:
-                msg = str(e)
-                if 'rate' in msg.lower() or 'limit' in msg.lower() or 'Wait' in msg:
-                    wait = 65
-                    print(f"\n    ⏳ Rate limit — chờ {wait}s rồi retry...", file=sys.stderr)
-                    time.sleep(wait)
-                else:
-                    print(f"    [{src}] {e}", file=sys.stderr)
-                    time.sleep(3)
-                    break
+        try:
+            df = Vnstock().stock(symbol=sym, source=src).quote.history(
+                start=start, end=TODAY, interval='1D')
+            if df is not None and len(df) >= 5:
+                return df
+        except Exception as e:
+            print(f"    [{src}] {e}", file=sys.stderr)
     return None
 
 
