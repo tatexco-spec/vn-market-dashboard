@@ -30,7 +30,7 @@ else:
 TODAY    = datetime.now().strftime('%Y-%m-%d')
 START_1Y = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
 START_3M = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
-OUT_DIR  = os.path.join(os.path.dirname(__file__), '..', 'data')
+OUT_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 STOCKS = [
