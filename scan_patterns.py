@@ -123,7 +123,7 @@ def do_bt(df,ei,opf,score,gor,rd):
     return {'entry_date':ed,'entry_price':round(ep,2),'exit_date':xd,'exit_price':round(xp,2),
             'return_pct':round((xp-ep)/ep*100,2),'days_held':days,'exit_reason':xr,
             'max_price':round(hi,2),'max_ret_pct':round((hi-ep)/ep*100,2),
-            'outperforms':opf,'outperform_score':score,'green_on_red':gor,'red_days':rd}
+            'outperforms':bool(opf),'outperform_score':score,'green_on_red':gor,'red_days':rd}
 
 def stats(rets):
     if not rets: return {}
